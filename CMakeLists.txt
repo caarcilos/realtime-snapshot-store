@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(lock_free_store_sample LANGUAGES CXX)
+project(realtime_snapshot_store LANGUAGES CXX)
 
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -14,49 +14,49 @@ if(ENABLE_TSAN AND ENABLE_ASAN_UBSAN)
     message(FATAL_ERROR "ThreadSanitizer and AddressSanitizer cannot be enabled together")
 endif()
 
-add_library(lock_free_store INTERFACE)
-add_library(realtime::lock_free_store ALIAS lock_free_store)
+add_library(snapshot_store INTERFACE)
+add_library(realtime::snapshot_store ALIAS snapshot_store)
 
-target_sources(lock_free_store INTERFACE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/realtime/lock_free_store.hpp>"
+target_sources(snapshot_store INTERFACE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/realtime/snapshot_store.hpp>"
 )
 
-target_include_directories(lock_free_store INTERFACE
+target_include_directories(snapshot_store INTERFACE
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>"
 )
 
-target_compile_features(lock_free_store INTERFACE cxx_std_20)
+target_compile_features(snapshot_store INTERFACE cxx_std_20)
 
 if(BUILD_TESTING)
-    add_executable(lock_free_store_tests
-        tests/lock_free_store_test.cpp
+    add_executable(snapshot_store_tests
+        tests/snapshot_store_test.cpp
     )
 
     find_package(Threads REQUIRED)
-    target_link_libraries(lock_free_store_tests PRIVATE
-        realtime::lock_free_store
+    target_link_libraries(snapshot_store_tests PRIVATE
+        realtime::snapshot_store
         Threads::Threads
     )
 
     if(MSVC)
-        target_compile_options(lock_free_store_tests PRIVATE
+        target_compile_options(snapshot_store_tests PRIVATE
             /W4
             /permissive-
         )
 
         if(WARNINGS_AS_ERRORS)
-            target_compile_options(lock_free_store_tests PRIVATE /WX)
+            target_compile_options(snapshot_store_tests PRIVATE /WX)
         endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(lock_free_store_tests PRIVATE
+        target_compile_options(snapshot_store_tests PRIVATE
             -Wall
             -Wextra
             -Wpedantic
         )
 
         if(WARNINGS_AS_ERRORS)
-            target_compile_options(lock_free_store_tests PRIVATE -Werror)
+            target_compile_options(snapshot_store_tests PRIVATE -Werror)
         endif()
     endif()
 
@@ -73,9 +73,9 @@ if(BUILD_TESTING)
             list(APPEND SANITIZER_FLAGS -fsanitize=address,undefined -fno-sanitize-recover=all)
         endif()
 
-        target_compile_options(lock_free_store_tests PRIVATE ${SANITIZER_FLAGS})
-        target_link_options(lock_free_store_tests PRIVATE ${SANITIZER_FLAGS})
+        target_compile_options(snapshot_store_tests PRIVATE ${SANITIZER_FLAGS})
+        target_link_options(snapshot_store_tests PRIVATE ${SANITIZER_FLAGS})
     endif()
 
-    add_test(NAME lock_free_store_tests COMMAND lock_free_store_tests)
+    add_test(NAME snapshot_store_tests COMMAND snapshot_store_tests)
 endif()

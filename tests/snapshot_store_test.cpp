@@ -1,4 +1,4 @@
-#include <realtime/lock_free_store.hpp>
+#include <realtime/snapshot_store.hpp>
 
 #include <array>
 #include <atomic>
@@ -52,7 +52,7 @@ namespace {
 	};
 
 	void newest_output_keeps_its_address_after_erase() {
-		realtime::lock_free_store<snapshot> store{ snapshot{ 1 } };
+		realtime::snapshot_store<snapshot> store{ snapshot{ 1 } };
 		store.publish_new_output( snapshot{ 2 } );
 		store.publish_new_output( snapshot{ 3 } );
 
@@ -65,7 +65,7 @@ namespace {
 	}
 
 	void size_returns_to_one_after_erase() {
-		realtime::lock_free_store<snapshot> store{ snapshot{ 1 } };
+		realtime::snapshot_store<snapshot> store{ snapshot{ 1 } };
 		store.publish_new_output( snapshot{ 2 } );
 		store.publish_new_output( snapshot{ 3 } );
 
@@ -75,7 +75,7 @@ namespace {
 	}
 
 	void supports_move_only_values() {
-		realtime::lock_free_store<::std::unique_ptr<int>> store{ ::std::make_unique<int>( 1 ) };
+		realtime::snapshot_store<::std::unique_ptr<int>> store{ ::std::make_unique<int>( 1 ) };
 		store.publish_new_output( ::std::make_unique<int>( 2 ) );
 
 		require( *store.active_output() == 2, "the move-only output was not published" );
@@ -92,7 +92,7 @@ namespace {
 	static_assert( !::std::is_move_assignable_v<non_assignable_value> );
 
 	void erase_supports_non_assignable_values() {
-		realtime::lock_free_store<non_assignable_value> store{ non_assignable_value{ 1 } };
+		realtime::snapshot_store<non_assignable_value> store{ non_assignable_value{ 1 } };
 		store.publish_new_output( non_assignable_value{ 2 } );
 		const non_assignable_value *const newest_before_erase = &store.active_output();
 
@@ -133,7 +133,7 @@ namespace {
 	};
 
 	void failed_publish_leaves_active_output_unchanged() {
-		realtime::lock_free_store<throwing_value> store{ throwing_value{ 7 } };
+		realtime::snapshot_store<throwing_value> store{ throwing_value{ 7 } };
 		const throwing_value *const               active_before_publish = &store.active_output();
 		const throwing_value                     candidate{ 99 };
 
@@ -158,7 +158,7 @@ namespace {
 		constexpr ::std::uint64_t PUBLICATION_COUNT = 50'000;
 		constexpr ::std::size_t   READER_COUNT      = 4;
 
-		realtime::lock_free_store<snapshot> store{ snapshot{ 0 } };
+		realtime::snapshot_store<snapshot> store{ snapshot{ 0 } };
 		::std::atomic<bool>                    finished{ false };
 		::std::atomic<::std::size_t>           invalid_reads{ 0 };
 		::std::atomic<::std::size_t>           backwards_reads{ 0 };

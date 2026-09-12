@@ -1,5 +1,5 @@
-#ifndef REALTIME_LOCK_FREE_STORE_HPP
-#define REALTIME_LOCK_FREE_STORE_HPP
+#ifndef REALTIME_SNAPSHOT_STORE_HPP
+#define REALTIME_SNAPSHOT_STORE_HPP
 
 #include <atomic>
 #include <cstddef>
@@ -42,7 +42,7 @@ namespace realtime {
 	///  * !m_outputs.empty()
 	///  * m_active_output_ptr points to &m_outputs.back()
 	template <class T>
-	class lock_free_store {
+	class snapshot_store {
 	 private:
 		/// \brief The deque of outputs
 		::std::deque<T> m_outputs;
@@ -52,17 +52,17 @@ namespace realtime {
 		static_assert( decltype( m_active_output_ptr )::is_always_lock_free );
 
 	 public:
-		explicit lock_free_store( T );
-		~lock_free_store() noexcept = default;
+		explicit snapshot_store( T );
+		~snapshot_store() noexcept = default;
 
-		lock_free_store()                                     = delete;
-		lock_free_store( const lock_free_store & )            = delete;
-		lock_free_store( lock_free_store && )                 = delete;
-		lock_free_store &operator=( const lock_free_store & ) = delete;
-		lock_free_store &operator=( lock_free_store && )      = delete;
+		snapshot_store()                                   = delete;
+		snapshot_store( const snapshot_store & )            = delete;
+		snapshot_store( snapshot_store && )                 = delete;
+		snapshot_store &operator=( const snapshot_store & ) = delete;
+		snapshot_store &operator=( snapshot_store && )      = delete;
 
-		lock_free_store &publish_new_output( T );
-		lock_free_store &erase_old_outputs() noexcept;
+		snapshot_store &publish_new_output( T );
+		snapshot_store &erase_old_outputs() noexcept;
 
 		[[nodiscard]] const T &active_output() const noexcept;
 
@@ -73,7 +73,7 @@ namespace realtime {
 	///
 	/// \param prm_output The first version of the output
 	template <class T>
-	lock_free_store<T>::lock_free_store( T prm_output ) : m_active_output_ptr{ nullptr } {
+	snapshot_store<T>::snapshot_store( T prm_output ) : m_active_output_ptr{ nullptr } {
 		m_outputs.push_back( ::std::move( prm_output ) );
 
 		// No other thread can observe the object before construction completes.
@@ -91,7 +91,7 @@ namespace realtime {
 	///
 	/// \param prm_output The new version of the output to publish
 	template <class T>
-	lock_free_store<T> &lock_free_store<T>::publish_new_output( T prm_output ) {
+	snapshot_store<T> &snapshot_store<T>::publish_new_output( T prm_output ) {
 		m_outputs.push_back( ::std::move( prm_output ) );
 		// Publish only after the new value is fully constructed.
 		m_active_output_ptr.store( &m_outputs.back(), ::std::memory_order_release );
@@ -107,7 +107,7 @@ namespace realtime {
 	///  * none of the other methods is being called
 	///  * none of the previously published outputs are being accessed
 	template <class T>
-	lock_free_store<T> &lock_free_store<T>::erase_old_outputs() noexcept {
+	snapshot_store<T> &snapshot_store<T>::erase_old_outputs() noexcept {
 		while ( m_outputs.size() > 1 )
 			m_outputs.pop_front();
 
@@ -121,7 +121,7 @@ namespace realtime {
 	/// The returned reference remains valid until erase_old_outputs() is called,
 	/// even if newer outputs are published in the meantime.
 	template <class T>
-	const T &lock_free_store<T>::active_output() const noexcept {
+	const T &snapshot_store<T>::active_output() const noexcept {
 		// Synchronize with the release that published this pointer.
 		return *m_active_output_ptr.load( ::std::memory_order_acquire );
 	}
@@ -130,10 +130,10 @@ namespace realtime {
 	///
 	/// Writer thread only, not for readers
 	template <class T>
-	::std::size_t lock_free_store<T>::size() const noexcept {
+	::std::size_t snapshot_store<T>::size() const noexcept {
 		return m_outputs.size();
 	}
 
 } // namespace realtime
 
-#endif // REALTIME_LOCK_FREE_STORE_HPP
+#endif // REALTIME_SNAPSHOT_STORE_HPP
